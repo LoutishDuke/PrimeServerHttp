@@ -10,6 +10,8 @@ import java.net.InetSocketAddress;
 import java.util.*;
 import java.io.*;
 import java.util.logging.*;
+
+import com.google.common.io.Resources;
 import com.sun.net.httpserver.*;
 
 public class PrimeServerHttp {
@@ -23,11 +25,41 @@ public class PrimeServerHttp {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
             LOG.info("HTTP: Server started");
+            server.createContext("/", new LandingPageHandler());
             server.createContext("/prime", new PrimeContextHandler());
             server.setExecutor(null); // creates a default executor
             server.start();
         } catch (IOException ex) {
             LOG.log(Level.ALL, ex.getMessage());
+        }
+    }
+    
+    //Landing page handler for default server greeting
+    static class LandingPageHandler implements HttpHandler{
+        @Override
+        public void handle(HttpExchange request) throws IOException{
+            LOG.info(System.getProperty("user.dir"));
+            String resp = "";
+            
+            try(var bReader = new BufferedReader(new InputStreamReader(new FileInputStream(new File("resources/index.html"))))){
+                String line;
+            
+                while((line = bReader.readLine()) != null){
+                    resp += line;
+                }
+                
+                bReader.close();
+        } catch (FileNotFoundException e){
+            e.printStackTrace();
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+
+            request.getResponseHeaders().set("Content-Type", "text/html");
+            request.sendResponseHeaders(200, resp.length());
+            OutputStream os = request.getResponseBody();
+            os.write(resp.getBytes());
+            os.close();
         }
     }
 
